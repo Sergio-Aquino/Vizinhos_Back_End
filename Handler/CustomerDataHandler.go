@@ -4,22 +4,30 @@ import (
 	"Vizinhos_Back_End/Entity"
 	"Vizinhos_Back_End/Response"
 	"encoding/json"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"log"
 	"net/http"
-	"strconv"
 	"strings"
-	"time"
 )
 
 func GetCustomerDataHandler(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/customer/")
-	customerID, err := strconv.Atoi(path)
+	// Database connection string
+	dsn := "user=postgres password=postgres dbname=postgres port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		http.Error(w, "Invalid Customer ID", http.StatusBadRequest)
+		log.Fatal(err)
+	}
+
+	// Get customer ID from query parameters
+	customerID := strings.TrimPrefix(r.URL.Path, "/customer/")
+	if customerID == "" {
+		http.Error(w, "Invalid customer ID", http.StatusBadRequest)
 		return
 	}
 
-	orders := getCustomerOrders(customerID)
-	addresses := getCustomerAddresses(customerID)
+	orders := getCustomerOrders(customerID, db)
+	addresses := getCustomerAddresses(customerID, db)
 
 	response := Response.CustomerDataHandlerResponse{
 		Orders:    orders,
@@ -30,78 +38,20 @@ func GetCustomerDataHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func getCustomerOrders(customerID int) []Entity.Order {
-	return []Entity.Order{
-		{
-			OrderID: 1,
-			User: Entity.User{
-				CPF:      "47713289730",
-				UserType: 0,
-				StoreOrAddress: []Entity.StoreOrAddress{{
-					StoreID:    1,
-					AddressID:  1,
-					CEP:        "12345678",
-					Street:     "Street 1",
-					Number:     123,
-					Complement: "Complement 1",
-					StoreName:  "Store 1",
-				}},
-				PhoneNumber:  "123456789",
-				Email:        "client1@gmail.com",
-				RegisterDate: time.Now(),
-			},
-			Batch: Entity.Batch{
-				BatchID: 1,
-				Product: Entity.Product{
-					ProductID: 1,
-					Store: Entity.StoreOrAddress{
-						StoreID:    1,
-						AddressID:  1,
-						CEP:        "12345678",
-						Street:     "Street 1",
-						Number:     123,
-						Complement: "Complement 1",
-						StoreName:  "Store 1",
-					},
-					Category: Entity.Category{
-						CategoryID:  1,
-						Description: "Category 1",
-					},
-					DaysToExp:          30,
-					SellPrice:          100.0,
-					ManufacturingPrice: 50.0,
-					Size:               1.0,
-				},
-				ManufacturingDate: time.Now(),
-				Discount:          10.0,
-				Quantity:          100,
-			},
-			Price:      100.0,
-			Quantity:   2,
-			Date:       time.Now(),
-			Status:     "Delivered",
-			LastUpdate: time.Now(),
-		},
+func getCustomerOrders(customerID string, db *gorm.DB) []Entity.Order {
+	var orders []Entity.Order
+	db.Where("fk_usuario_cpf = ?", strings.TrimSpace(customerID)).Find(&orders)
+
+	for i := range orders {
+		orders[i].UserCPF = strings.TrimSpace(orders[i].UserCPF)
 	}
+
+	return orders
 }
 
-func getCustomerAddresses(customerID int) []Entity.StoreOrAddress {
-	return []Entity.StoreOrAddress{
-		{
-			StoreID:    1,
-			AddressID:  1,
-			CEP:        "12345678",
-			Street:     "Street 1",
-			Number:     123,
-			Complement: "Complement 1",
-		},
-		{
-			StoreID:    2,
-			AddressID:  1,
-			CEP:        "68234777",
-			Street:     "Street 2",
-			Number:     124,
-			Complement: "Complement 2",
-		},
-	}
+func getCustomerAddresses(customerID string, db *gorm.DB) []Entity.StoreOrAddress {
+	var addresses []Entity.StoreOrAddress
+	db.Joins("JOIN usuario ON usuario.fk_id_loja = loja_endereco.id_loja AND usuario.fk_id_endereco = loja_endereco.id_endereco").
+		Where("usuario.cpf = ?", customerID).Find(&addresses)
+	return addresses
 }
