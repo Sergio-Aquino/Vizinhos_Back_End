@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -28,7 +29,7 @@ func GetSellerDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	store := getSellerStore(sellerID, db)
-	products := getSellerProducts(store.StoreID, db)
+	products := getSellerProducts(strconv.Itoa(store.StoreID), db)
 
 	response := Response.SellerDataHandlerResponse{
 		StoreAddress: store,
@@ -43,6 +44,9 @@ func getSellerStore(sellerID string, db *gorm.DB) Entity.StoreOrAddress {
 	var store Entity.StoreOrAddress
 	db.Joins("JOIN usuario ON usuario.fk_id_loja = loja_endereco.id_loja AND usuario.fk_id_endereco = loja_endereco.id_endereco").
 		Where("usuario.cpf = ?", sellerID).Find(&store)
+
+	store.CEP = strings.TrimSpace(store.CEP)
+
 	return store
 }
 

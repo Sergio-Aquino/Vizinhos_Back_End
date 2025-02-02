@@ -27,11 +27,11 @@ func GetCustomerDataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orders := getCustomerOrders(customerID, db)
-	addresses := getCustomerAddresses(customerID, db)
+	address := getCustomerAddresses(customerID, db)
 
 	response := Response.CustomerDataHandlerResponse{
-		Orders:    orders,
-		Addresses: addresses,
+		Orders:  orders,
+		Address: address,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -49,9 +49,11 @@ func getCustomerOrders(customerID string, db *gorm.DB) []Entity.Order {
 	return orders
 }
 
-func getCustomerAddresses(customerID string, db *gorm.DB) []Entity.StoreOrAddress {
-	var addresses []Entity.StoreOrAddress
+func getCustomerAddresses(customerID string, db *gorm.DB) Entity.StoreOrAddress {
+	var address Entity.StoreOrAddress
 	db.Joins("JOIN usuario ON usuario.fk_id_loja = loja_endereco.id_loja AND usuario.fk_id_endereco = loja_endereco.id_endereco").
-		Where("usuario.cpf = ?", customerID).Find(&addresses)
-	return addresses
+		Where("usuario.cpf = ?", customerID).Find(&address)
+	address.CEP = strings.TrimSpace(address.CEP)
+
+	return address
 }

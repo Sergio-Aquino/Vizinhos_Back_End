@@ -5,9 +5,9 @@ import (
 )
 
 type Order struct {
-	OrderID    string    `gorm:"primaryKey;column:id_pedido"`
+	OrderID    int       `gorm:"primaryKey;column:id_pedido"`
 	UserCPF    string    `gorm:"column:fk_usuario_cpf"`
-	BatchID    string    `gorm:"column:fk_lote_id_lote"`
+	BatchID    int       `gorm:"column:fk_lote_id_lote"`
 	Price      float64   `gorm:"column:valor"`
 	Quantity   int       `gorm:"column:quantidade"`
 	Date       time.Time `gorm:"column:data_pedido"`

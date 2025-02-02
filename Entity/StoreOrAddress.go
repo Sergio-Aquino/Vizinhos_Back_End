@@ -1,14 +1,14 @@
 package Entity
 
 type StoreOrAddress struct {
-	StoreID     string `gorm:"primaryKey;column:id_loja"`
-	AddressID   string `gorm:"primaryKey;column:id_endereco"`
-	CEP         string `gorm:"column:cep"`
-	Street      string `gorm:"column:logradouro"`
-	Number      string `gorm:"column:numero"`
-	Complement  string `gorm:"column:complemento"`
-	StoreName   string `gorm:"column:nome_loja"`
-	Description string `gorm:"column:descricao_loja"`
+	StoreID     int    `gorm:"primaryKey;column:id_loja;uniqueIndex:store_address_idx" json:"StoreID"`
+	AddressID   int    `gorm:"primaryKey;column:id_endereco;uniqueIndex:store_address_idx;autoIncrement" json:"AddressID"`
+	CEP         string `gorm:"column:cep" json:"CEP"`
+	Street      string `gorm:"column:logradouro" json:"Street"`
+	Number      string `gorm:"column:numero" json:"Number"`
+	Complement  string `gorm:"column:complemento" json:"Complement"`
+	StoreName   string `gorm:"column:nome_loja" json:"StoreName"`
+	Description string `gorm:"column:descricao_loja" json:"Description"`
 }
 
 func (StoreOrAddress) TableName() string {

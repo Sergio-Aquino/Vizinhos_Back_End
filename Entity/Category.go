@@ -1,7 +1,7 @@
 package Entity
 
 type Category struct {
-	CategoryID  string `gorm:"primaryKey;column:id_categoria"`
+	CategoryID  int    `gorm:"primaryKey;column:id_categoria"`
 	Description string `gorm:"column:descricao"`
 }
 

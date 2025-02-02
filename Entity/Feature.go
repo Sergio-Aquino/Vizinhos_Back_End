@@ -1,7 +1,7 @@
 package Entity
 
 type Feature struct {
-	FeatureID   string `gorm:"primaryKey;column:id_caracteristica"`
+	FeatureID   int    `gorm:"primaryKey;column:id_caracteristica"`
 	Description string `gorm:"column:descricao"`
 }
 
