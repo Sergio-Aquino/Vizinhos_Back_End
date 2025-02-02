@@ -3,6 +3,7 @@ package Handler
 import (
 	"Vizinhos_Back_End/Entity"
 	"encoding/json"
+	"github.com/aws/aws-lambda-go/events"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -10,29 +11,29 @@ import (
 	"time"
 )
 
-func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
-	// Database connection string
+func RegisterUserHandler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	dsn := "user=postgres password=postgres dbname=postgres port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Parse user
 	var user Entity.User
-	err = json.NewDecoder(r.Body).Decode(&user)
+	err = json.Unmarshal([]byte(req.Body), &user)
 	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Invalid request payload",
+		}, nil
 	}
 
-	// Validate UserType
 	if user.UserType != 0 && user.UserType != 1 {
-		http.Error(w, "Invalid user type", http.StatusBadRequest)
-		return
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Invalid user type",
+		}, nil
 	}
 
-	// Set the registration date
 	user.RegisterDate = time.Now()
 
 	if user.UserType == 1 {
@@ -44,8 +45,10 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = db.Create(&user.StoreOrAddress).Error
 		if err != nil {
-			http.Error(w, "Failed to register user address", http.StatusInternalServerError)
-			return
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Body:       "Failed to register user address",
+			}, nil
 		}
 
 		user.AddressID = user.StoreOrAddress.AddressID
@@ -61,8 +64,10 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = db.Create(&user.StoreOrAddress).Error
 		if err != nil {
-			http.Error(w, "Failed to register seller store", http.StatusInternalServerError)
-			return
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Body:       "Failed to register seller store",
+			}, nil
 		}
 
 		user.StoreID = user.StoreOrAddress.StoreID
@@ -71,10 +76,14 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = db.Create(&user).Error
 	if err != nil {
-		http.Error(w, "Failed to register user", http.StatusInternalServerError)
-		return
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       "Failed to register user",
+		}, nil
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User registered successfully"))
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusCreated,
+		Body:       "User registered successfully",
+	}, nil
 }

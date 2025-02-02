@@ -4,6 +4,7 @@ import (
 	"Vizinhos_Back_End/Entity"
 	"Vizinhos_Back_End/Response"
 	"encoding/json"
+	"github.com/aws/aws-lambda-go/events"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
@@ -12,20 +13,19 @@ import (
 	"strings"
 )
 
-func GetSellerDataHandler(w http.ResponseWriter, r *http.Request) {
-	// Database connection string
+func GetSellerDataHandler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	dsn := "user=postgres password=postgres dbname=postgres port=5432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Get seller ID from query parameters
-	sellerID := strings.TrimPrefix(r.URL.Path, "/seller/")
-
+	sellerID := strings.TrimPrefix(req.Path, "/seller/")
 	if sellerID == "" {
-		http.Error(w, "Invalid Seller ID", http.StatusBadRequest)
-		return
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Invalid Seller ID",
+		}, nil
 	}
 
 	store := getSellerStore(sellerID, db)
@@ -36,8 +36,18 @@ func GetSellerDataHandler(w http.ResponseWriter, r *http.Request) {
 		Products:     products,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	responseBody, err := json.Marshal(response)
+	if err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       "Failed to marshal response",
+		}, nil
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Body:       string(responseBody),
+	}, nil
 }
 
 func getSellerStore(sellerID string, db *gorm.DB) Entity.StoreOrAddress {
